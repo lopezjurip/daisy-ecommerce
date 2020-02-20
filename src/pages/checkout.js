@@ -1,11 +1,11 @@
 import React, { useState } from "react"
+import { FaLongArrowAltLeft } from "react-icons/fa"
+import { Link } from "gatsby"
+import uuid from "uuid/v4"
 
 import { SiteContext, ContextProviderComponent } from "../context/mainContext"
 import { DENOMINATION } from "../../providers/inventoryProvider"
-import { FaLongArrowAltLeft } from "react-icons/fa"
-import { Link } from "gatsby"
 import Image from "../components/Image"
-import uuid from "uuid/v4"
 
 function CheckoutWithContext(props) {
   return (
@@ -38,13 +38,14 @@ const Checkout = ({ context }) => {
   const [errorMessage, setErrorMessage] = useState(null)
   const [orderCompleted, setOrderCompleted] = useState(false)
   const [input, setInput] = useState({
-    name: "",
-    email: "",
-    street: "",
-    city: "",
-    postal_code: "",
-    state: "",
+    name: "Patricio",
+    email: "patricio.juri@consensys.net",
+    street: "49 Bogart",
+    city: "Brooklyn",
+    postal_code: "212121",
+    state: "NY",
   })
+  const [daisyInvoice, daisyInvoiceSet] = useState(null);
   const [error, setError] = useState(null); // daisy
 
   const onChange = e => {
@@ -55,7 +56,7 @@ const Checkout = ({ context }) => {
   const handleSubmit = async event => {
     event.preventDefault()
     const { name, email, street, city, postal_code, state } = input
-    const { total, clearCart } = context
+    const { total, cart, clearCart } = context
 
     // Validate input
     if (!street || !city || !postal_code || !state) {
@@ -63,30 +64,35 @@ const Checkout = ({ context }) => {
       return
     }
 
-    // TODO: daisy
-    // const { error, paymentMethod } = await stripe.createPaymentMethod({
-    //   type: "card",
-    //   card: cardElement,
-    //   billing_details: { name: name },
-    // })
+    try {
+      const data = await fetch("http://localhost:3333/checkout/daisy/", {
+        method:"post",
+        body: JSON.stringify({ input, cart }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }).then(r => {
+        if (r.ok) {
+          return r.json()
+        } else {
+          throw new Error("Bad request error", r);
+        }
+      });
+      daisyInvoiceSet(data);
+      window.location = data["shareURL"];
+    } catch (err) {
+      console.error(err);
+      daisyInvoiceSet(null);
+      setErrorMessage(err.message);
+    }
 
     if (error) {
       setErrorMessage(error.message)
       return
     }
 
-    const order = {
-      email,
-      amount: total,
-      address: state, // should this be {street, city, postal_code, state} ?
-      payment_method_id: 1, // paymentMethod.id,
-      receipt_email: "customer@example.com",
-      id: uuid(),
-    }
-    console.log("order: ", order)
-    // TODO call API
-    setOrderCompleted(true)
-    clearCart()
+    // setOrderCompleted(true)
+    // clearCart()
   }
 
   const { numberOfItemsInCart, cart, total } = context
@@ -154,7 +160,7 @@ const Checkout = ({ context }) => {
                       onChange={onChange}
                       value={input.name}
                       name="name"
-                      placeholder="Cardholder name"
+                      placeholder="Full name"
                     />
                     {/* <CardElement className="mt-2 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" /> */}
                     <Input
@@ -179,7 +185,7 @@ const Checkout = ({ context }) => {
                       onChange={onChange}
                       value={input.state}
                       name="state"
-                      placeholder="State"
+                      placeholder="State / province"
                     />
                     <Input
                       onChange={onChange}
@@ -194,7 +200,7 @@ const Checkout = ({ context }) => {
                       className="hidden md:block bg-secondary hover:bg-black text-white font-bold py-2 px-4 mt-4 rounded focus:outline-none focus:shadow-outline"
                       type="button"
                     >
-                      Confirm order
+                      Pay with Daisy
                     </button>
                   </form>
                 </div>
