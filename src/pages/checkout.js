@@ -7,26 +7,12 @@ import { Link } from "gatsby"
 import Image from "../components/Image"
 import uuid from "uuid/v4"
 
-import {
-  CardElement,
-  Elements,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js"
-import { loadStripe } from "@stripe/stripe-js"
-
-// Make sure to call `loadStripe` outside of a component’s render to avoid
-// recreating the `Stripe` object on every render.
-const stripePromise = loadStripe("pk_test_DvXwcKnVaaZUpWJIbh9cjgZr00IjIAjZAA")
-
 function CheckoutWithContext(props) {
   return (
     <ContextProviderComponent>
       <SiteContext.Consumer>
         {context => (
-          <Elements stripe={stripePromise}>
-            <Checkout {...props} context={context} />
-          </Elements>
+          <Checkout {...props} context={context} />
         )}
       </SiteContext.Consumer>
     </ContextProviderComponent>
@@ -59,9 +45,7 @@ const Checkout = ({ context }) => {
     postal_code: "",
     state: "",
   })
-
-  const stripe = useStripe()
-  const elements = useElements()
+  const [error, setError] = useState(null); // daisy
 
   const onChange = e => {
     setErrorMessage(null)
@@ -73,29 +57,18 @@ const Checkout = ({ context }) => {
     const { name, email, street, city, postal_code, state } = input
     const { total, clearCart } = context
 
-    if (!stripe || !elements) {
-      // Stripe.js has not loaded yet. Make sure to disable
-      // form submission until Stripe.js has loaded.
-      return
-    }
-
     // Validate input
     if (!street || !city || !postal_code || !state) {
       setErrorMessage("Please fill in the form!")
       return
     }
 
-    // Get a reference to a mounted CardElement. Elements knows how
-    // to find your CardElement because there can only ever be one of
-    // each type of element.
-    const cardElement = elements.getElement(CardElement)
-
-    // Use your card Element with other Stripe.js APIs
-    const { error, paymentMethod } = await stripe.createPaymentMethod({
-      type: "card",
-      card: cardElement,
-      billing_details: { name: name },
-    })
+    // TODO: daisy
+    // const { error, paymentMethod } = await stripe.createPaymentMethod({
+    //   type: "card",
+    //   card: cardElement,
+    //   billing_details: { name: name },
+    // })
 
     if (error) {
       setErrorMessage(error.message)
@@ -106,7 +79,7 @@ const Checkout = ({ context }) => {
       email,
       amount: total,
       address: state, // should this be {street, city, postal_code, state} ?
-      payment_method_id: paymentMethod.id,
+      payment_method_id: 1, // paymentMethod.id,
       receipt_email: "customer@example.com",
       id: uuid(),
     }
@@ -183,7 +156,7 @@ const Checkout = ({ context }) => {
                       name="name"
                       placeholder="Cardholder name"
                     />
-                    <CardElement className="mt-2 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+                    {/* <CardElement className="mt-2 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" /> */}
                     <Input
                       onChange={onChange}
                       value={input.email}
@@ -216,7 +189,7 @@ const Checkout = ({ context }) => {
                     />
                     <button
                       type="submit"
-                      disabled={!stripe}
+                      disabled={false}
                       onClick={handleSubmit}
                       className="hidden md:block bg-secondary hover:bg-black text-white font-bold py-2 px-4 mt-4 rounded focus:outline-none focus:shadow-outline"
                       type="button"
@@ -247,7 +220,7 @@ const Checkout = ({ context }) => {
                 </div>
                 <button
                   type="submit"
-                  disabled={!stripe}
+                  disabled={false}
                   onClick={handleSubmit}
                   className="md:hidden bg-secondary hover:bg-black text-white font-bold py-2 px-4 mt-4 rounded focus:outline-none focus:shadow-outline"
                   type="button"
